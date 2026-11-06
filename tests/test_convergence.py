@@ -6,6 +6,7 @@ O(N^-1/2) by the central limit theorem; Crank-Nicolson is second order.
 import numpy as np
 
 import optlib
+import reference
 
 REF = dict(S=100.0, K=100.0, r=0.05, sigma=0.2, T=1.0)
 CALL = optlib.OptionType.Call
@@ -16,7 +17,7 @@ def test_mc_rmse_slope_is_minus_one_half():
     # ~1/sqrt(2R) = 9%. The least-squares slope over 7 points spaced ln 2 apart
     # then has a standard error of about 0.09 / (ln 2 * sqrt(28)) = 0.025, so
     # the band [-0.6, -0.4] is a 4-sigma band.
-    bs = optlib.bs_price(CALL, **REF)
+    bs = reference.bs_price(True, **REF)  # independent oracle
     ns = np.array([2**k for k in range(10, 17)])
     rmse = []
     for i, n in enumerate(ns):
@@ -30,7 +31,7 @@ def test_mc_rmse_slope_is_minus_one_half():
 def test_pde_error_slope_is_minus_two():
     # Nx = Nt = N, N = 100 .. 1600. Error ratios are ~4.00 per doubling here
     # (see test_pde.py), so the band [-2.2, -1.8] allows for higher-order terms.
-    bs = optlib.bs_price(CALL, **REF)
+    bs = reference.bs_price(True, **REF)  # independent oracle
     ns = np.array([100, 200, 400, 800, 1600])
     errs = [abs(optlib.pde_price(CALL, **REF, n_space=int(n), n_time=int(n)) - bs) for n in ns]
     slope = np.polyfit(np.log(ns), np.log(errs), 1)[0]
