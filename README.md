@@ -154,6 +154,40 @@ The tests check the error against Black-Scholes (≤ 1e-3 on the reference case
 at the default 400×400 grid), the factor-of-4 error reduction per grid
 doubling, and the boundary handling on a deliberately narrow grid.
 
+
+## Benchmark: pure Python vs NumPy vs C++
+
+`scripts/benchmark.py` runs the same antithetic Monte Carlo estimator three
+ways: a pure-Python loop, vectorised NumPy, and the C++ library through the
+Python bindings. All three use equal path counts on the reference call. The
+output below is pasted verbatim from one run of
+`.venv/bin/python scripts/benchmark.py` (Release build, GCC 16):
+
+```
+Machine: AMD Ryzen 7 4800HS with Radeon Graphics, Linux x86_64, Python 3.14.10, NumPy 2.5.4; single thread
+Reference call (S=K=100, r=5%, sigma=20%, T=1): Black-Scholes = 10.4506
+Antithetic MC, best of 5 runs
+
+| Method | Paths | Price | Std. error | Time (ms) | Speed-up vs pure Python |
+|---|---:|---:|---:|---:|---:|
+| pure Python | 100,000 | 10.4571 | 0.0329 | 62.4 | 1.0x |
+| NumPy | 100,000 | 10.4714 | 0.0329 | 6.3 | 9.9x |
+| C++ (optlib) | 100,000 | 10.4361 | 0.0328 | 4.0 | 15.6x |
+| pure Python | 1,000,000 | 10.4553 | 0.0104 | 583.9 | 1.0x |
+| NumPy | 1,000,000 | 10.4562 | 0.0104 | 47.8 | 12.2x |
+| C++ (optlib) | 1,000,000 | 10.4521 | 0.0104 | 39.9 | 14.6x |
+```
+
+All three agree with Black-Scholes within about one standard error, as they
+should. In this run C++ is about 15× faster than the pure-Python loop
+(14.6–15.6×), but only 1.2–1.6× faster than NumPy. Both compiled versions
+spend their time drawing normal random numbers and computing `exp`. A likely
+factor is that NumPy's generator uses a fast ziggurat sampler, while the C++
+code uses `std::normal_distribution` (Marsaglia's polar method in libstdc++).
+Each method gets an untimed warm-up call, and each timing is the best of 5.
+Even so, the shorter 100k-path timings vary by tens of percent between runs.
+Rerun the script to get numbers for your machine.
+
 ## Testing
 
 `./scripts/check.sh < /dev/null` builds everything and runs the C++ unit tests
