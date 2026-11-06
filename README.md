@@ -170,21 +170,23 @@ Antithetic MC, best of 5 runs
 
 | Method | Paths | Price | Std. error | Time (ms) | Speed-up vs pure Python |
 |---|---:|---:|---:|---:|---:|
-| pure Python | 100,000 | 10.4571 | 0.0329 | 58.1 | 1.0x |
-| NumPy | 100,000 | 10.4714 | 0.0329 | 4.4 | 13.2x |
-| C++ (optlib) | 100,000 | 10.4361 | 0.0328 | 4.0 | 14.6x |
-| pure Python | 1,000,000 | 10.4553 | 0.0104 | 579.1 | 1.0x |
-| NumPy | 1,000,000 | 10.4562 | 0.0104 | 48.2 | 12.0x |
-| C++ (optlib) | 1,000,000 | 10.4521 | 0.0104 | 39.5 | 14.7x |
+| pure Python | 100,000 | 10.4571 | 0.0329 | 62.4 | 1.0x |
+| NumPy | 100,000 | 10.4714 | 0.0329 | 6.3 | 9.9x |
+| C++ (optlib) | 100,000 | 10.4361 | 0.0328 | 4.0 | 15.6x |
+| pure Python | 1,000,000 | 10.4553 | 0.0104 | 583.9 | 1.0x |
+| NumPy | 1,000,000 | 10.4562 | 0.0104 | 47.8 | 12.2x |
+| C++ (optlib) | 1,000,000 | 10.4521 | 0.0104 | 39.9 | 14.6x |
 ```
 
 All three agree with Black-Scholes within about one standard error, as they
-should. C++ is about 15× faster than the pure-Python loop but only about 1.2×
-faster than NumPy. Both compiled versions spend their time drawing normal
-random numbers and computing `exp`. A likely factor is that NumPy's generator
-uses a fast ziggurat sampler, while the C++ code uses
-`std::normal_distribution`. Timings depend on the machine; rerun the script
-to get your own.
+should. In this run C++ is about 15× faster than the pure-Python loop
+(14.6–15.6×), but only 1.2–1.6× faster than NumPy. Both compiled versions
+spend their time drawing normal random numbers and computing `exp`. A likely
+factor is that NumPy's generator uses a fast ziggurat sampler, while the C++
+code uses `std::normal_distribution` (Marsaglia's polar method in libstdc++).
+Each method gets an untimed warm-up call, and each timing is the best of 5.
+Even so, the shorter 100k-path timings vary by tens of percent between runs.
+Rerun the script to get numbers for your machine.
 
 ## Testing
 
