@@ -31,13 +31,14 @@ def test_default_grid_reference_case():
     assert optlib.pde_price(Call, **m) == pytest.approx(reference.bs_price(True, **m), abs=1e-3)
 
 
+@pytest.mark.parametrize("otype", TYPES, ids=["call", "put"])
 @pytest.mark.parametrize("m", GRID[::5], ids=case_id)
-def test_second_order_in_grid(m):
+def test_second_order_in_grid(otype, m):
     # CN + Rannacher is O(dx^2 + dt^2): with Nt = Nx the log-log slope of
     # |error| vs N must be -2. Band [-2.2, -1.8] allows for residual
     # higher-order terms over N = 100..800.
-    want = reference.bs_price(True, **m)
+    want = reference.bs_price(is_call(otype), **m)
     ns = np.array([100, 200, 400, 800])
-    errs = np.array([abs(optlib.pde_price(Call, **m, n_space=int(n), n_time=int(n)) - want) for n in ns])
+    errs = np.array([abs(optlib.pde_price(otype, **m, n_space=int(n), n_time=int(n)) - want) for n in ns])
     slope = np.polyfit(np.log(ns), np.log(errs), 1)[0]
     assert -2.2 < slope < -1.8, slope
