@@ -67,6 +67,9 @@ METHODS = [("pure Python", mc_pure_python), ("NumPy", mc_numpy), ("C++ (optlib)"
 
 
 def best_time(fn, n_paths, repeats):
+    # One untimed warm-up call so one-off costs (e.g. NumPy's lazy
+    # initialisation, ~10 ms on first use) are not charged to any method.
+    fn(**REF, n_paths=min(n_paths, 10_000), seed=0)
     best, out = math.inf, None
     for i in range(repeats):
         t0 = time.perf_counter()
@@ -90,6 +93,13 @@ def main():
     ap.add_argument("--paths", type=int, nargs="+", default=[100_000, 1_000_000])
     ap.add_argument("--repeats", type=int, default=5)
     args = ap.parse_args()
+    # The C++ antithetic estimator requires an even path count >= 4; enforce
+    # it up front so all three methods simulate exactly n_paths / 2 pairs.
+    bad = [n for n in args.paths if n < 4 or n % 2]
+    if bad:
+        ap.error(f"--paths values must be even and >= 4: {bad}")
+    if args.repeats < 1:
+        ap.error("--repeats must be >= 1")
 
     bs = optlib.bs_price(optlib.OptionType.Call, **REF)
     print(f"Machine: {cpu_name()}, {platform.system()} {platform.machine()}, "
