@@ -112,6 +112,12 @@ Three estimators are provided:
   option average by `β` times the observed error in the stock average, where
   `β` is fitted from the same simulations.
 
+**Limitation:** the reported SE is only trustworthy when enough paths land on
+both sides of the strike. For a very deep in- or out-of-the-money option,
+nearly every path gives a payoff that is a straight line in `S_T`. The control
+variate absorbs that line exactly, so the SE can collapse towards zero even
+though the rarely-sampled region still carries real error.
+
 The tests require every estimator to land within 4 standard errors of the
 Black-Scholes price. They also check that the reported SE matches the actual
 scatter of prices across 200 independent seeds.
@@ -166,7 +172,9 @@ tolerance is stated and justified next to its test:
 | PDE convergence slope | fitted slope in [−2.2, −1.8] | Crank-Nicolson is second order |
 | Greeks vs Richardson finite differences | 1e-6 relative | Truncation O(h⁴) plus rounding; worst observed 2.5e-9 |
 
-Monte Carlo cases where fewer than 20 simulated paths are expected to finish
-on one side of the strike are skipped, with that reason reported. There the
-standard error is essentially zero and the normal-approximation bound does
-not apply.
+Some Monte Carlo cases are skipped, with the reason reported. Plain and
+antithetic cases are skipped when fewer than 20 simulated paths are expected
+to end with a non-zero payoff. Control-variate cases are skipped when fewer
+than 20 are expected on either side of the strike. In those cases the barely
+sampled region makes the reported standard error unreliable (see the
+limitation above), so an "within k standard errors" check means nothing.
