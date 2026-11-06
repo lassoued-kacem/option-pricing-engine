@@ -4,6 +4,20 @@ A small C++17 library for pricing European options three ways: the
 Black-Scholes closed form, Monte Carlo simulation and a finite-difference PDE
 solver. Each numerical method is checked against the closed form.
 
+## Repository layout
+
+```
+cpp/include/optlib/   public headers (types, black_scholes, monte_carlo, pde, tridiag)
+cpp/src/              C++17 implementations
+cpp/bindings/         pybind11 module `optlib`
+tests/cpp/            C++ unit tests (CTest)
+tests/                pytest suite; reference.py is the independent oracle
+scripts/check.sh      configure + build + ctest + pytest
+scripts/benchmark.py  pure Python vs NumPy vs C++ timing
+scripts/convergence.py  convergence study and figures
+docs/figures/         figures used in this README
+```
+
 ## Building
 
 Requirements: a C++17 compiler, CMake ≥ 3.18 and Python 3 with pybind11, numpy,
@@ -188,6 +202,52 @@ Each method gets an untimed warm-up call, and each timing is the best of 5.
 Even so, the shorter 100k-path timings vary by tens of percent between runs.
 Rerun the script to get numbers for your machine.
 
+## Convergence
+
+`scripts/convergence.py` measures how fast each numerical method approaches
+the Black-Scholes price on the reference call, and fits the rate as a slope
+on a log-log scale. The figures and numbers below come from one run of
+`.venv/bin/python scripts/convergence.py` with default settings. The script
+uses fixed seeds, so a rerun on the same toolchain reproduces them
+(`std::normal_distribution` output is specific to the standard library).
+
+### Monte Carlo: error ∝ 1/√N
+
+For each path count N = 2¹⁰ … 2²⁰, the script computes the root-mean-square
+error against Black-Scholes over 256 independent seeds. Theory (the central
+limit theorem) predicts a slope of −½ for every estimator. Variance reduction
+lowers the line but does not change its slope.
+
+![Monte Carlo RMSE vs paths](docs/figures/mc_convergence.png)
+
+| Estimator | RMSE at N=2^10 | RMSE at N=2^20 | Fitted slope |
+|---|---:|---:|---:|
+| Plain | 0.4559 | 0.014026 | -0.501 |
+| Antithetic | 0.3102 | 0.010864 | -0.497 |
+| Antithetic + control variate | 0.0850 | 0.002622 | -0.497 |
+
+Fitted slopes: −0.501, −0.497 and −0.497, against a theoretical −0.5. At equal
+N the control variate is about 5.4× more accurate than plain sampling
+(0.4559 / 0.0850 at 2¹⁰ and 0.014026 / 0.002622 at 2²⁰). Reaching the same
+accuracy by brute force would take about 5.4² ≈ 29× more paths.
+
+### PDE: error ∝ 1/N²
+
+With N space intervals and N time steps, Crank-Nicolson with the Rannacher
+start is second order, so the error should fall about 4× each time N doubles.
+
+![PDE error vs grid size](docs/figures/pde_convergence.png)
+
+| N | 50 | 100 | 200 | 400 | 800 | 1600 |
+|---|---:|---:|---:|---:|---:|---:|
+| error | 5.27e-02 | 1.30e-02 | 3.25e-03 | 8.13e-04 | 2.03e-04 | 5.08e-05 |
+
+Fitted slope: −2.003, against a theoretical −2.
+
+`tests/test_convergence.py` checks both slopes on every test run, using
+smaller sizes for speed. The MC band is [−0.6, −0.4], about 4 standard
+errors of the fitted slope. The PDE band is [−2.2, −1.8].
+
 ## Testing
 
 `./scripts/check.sh < /dev/null` builds everything and runs the C++ unit tests
@@ -205,6 +265,7 @@ tolerance is stated and justified next to its test:
 | MC reported SE vs actual scatter over 300 seeds | ratio in [0.84, 1.16] | ~4σ band for a sample standard deviation |
 | PDE vs closed form, 1600×1600 | 1e-4 relative | Accuracy spec; the error shrinks like 1/N² |
 | PDE convergence slope | fitted slope in [−2.2, −1.8] | Crank-Nicolson is second order |
+| MC convergence slope (64 seeds, N = 2¹⁰…2¹⁶) | fitted slope in [−0.6, −0.4] | Central limit theorem gives −½; the band is about 4 standard errors of the fitted slope |
 | Greeks vs Richardson finite differences | 1e-6 relative | Truncation O(h⁴) plus rounding; worst observed 2.5e-9 |
 
 Some Monte Carlo cases are skipped, with the reason reported. Plain and
