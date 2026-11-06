@@ -18,7 +18,29 @@ ctest --test-dir build --output-on-failure
 ```
 
 Or run everything (configure, build, C++ tests, Python tests) with
-`./scripts/check.sh < /dev/null`.
+`./scripts/check.sh < /dev/null`. To skip the Python module, configure with
+`-DOPTLIB_BUILD_PYTHON=OFF`.
+
+## Python usage
+
+The build places the module in `build/python/`:
+
+```python
+import sys; sys.path.insert(0, "build/python")
+import optlib
+from optlib import OptionType
+
+optlib.bs_price(OptionType.Call, S=100, K=100, r=0.05, sigma=0.2, T=1)        # closed form
+optlib.bs_greeks(OptionType.Put, S=100, K=100, r=0.05, sigma=0.2, T=1, q=0.02) # dict of Greeks
+res = optlib.mc_control_variate(OptionType.Call, S=100, K=100, r=0.05, sigma=0.2, T=1,
+                                n_paths=1_000_000, seed=7)
+res.price, res.std_error                                                       # estimate and its SE
+optlib.pde_price(OptionType.Call, S=100, K=100, r=0.05, sigma=0.2, T=1, n_space=400, n_time=400)
+```
+
+Every function takes an optional dividend yield `q` (default 0). The Monte Carlo
+functions are `mc_plain`, `mc_antithetic` and `mc_control_variate`. Invalid
+inputs raise `ValueError`.
 
 ## Conventions
 
