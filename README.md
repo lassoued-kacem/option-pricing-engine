@@ -38,9 +38,13 @@ res.price, res.std_error                                                       #
 optlib.pde_price(OptionType.Call, S=100, K=100, r=0.05, sigma=0.2, T=1, n_space=400, n_time=400)
 ```
 
-Every function takes an optional dividend yield `q` (default 0). The Monte Carlo
-functions are `mc_plain`, `mc_antithetic` and `mc_control_variate`. Invalid
-inputs raise `ValueError`.
+`option_type, S, K, r, sigma, T` may be given positionally. Everything after
+them is keyword-only: the dividend yield `q` (default 0), `n_paths`/`seed` for
+Monte Carlo, and `n_space`/`n_time`/`width_sd` for the PDE. The Monte Carlo
+functions are `mc_plain`, `mc_antithetic` and `mc_control_variate`.
+Out-of-range values (negative spot or volatility, odd antithetic path counts,
+etc.) raise `ValueError`. Arguments of the wrong type, including negative
+integers for `n_paths` or `seed`, raise `TypeError`.
 
 ## Conventions
 
