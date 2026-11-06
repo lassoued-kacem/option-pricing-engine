@@ -11,7 +11,7 @@ import pytest
 
 import optlib
 import reference
-from cases import GRID, TYPES, case_id, is_call
+from cases import GRID, TYPES, case_id, is_call, mc_clt_skip_reason
 
 N_PATHS = 50_000
 Z = 4.5
@@ -22,25 +22,15 @@ ESTIMATORS = {
 }
 
 
-def itm_probability(m):
-    """Risk-neutral P(S_T > K) = N(d2), computed independently of optlib."""
-    sd = m["sigma"] * math.sqrt(m["T"])
-    d2 = (math.log(m["S"] / m["K"]) + (m["r"] - m["q"] - 0.5 * m["sigma"] ** 2) * m["T"]) / sd
-    return reference.norm_cdf(d2)
-
-
 @pytest.mark.parametrize("name", ESTIMATORS)
 @pytest.mark.parametrize("otype", TYPES, ids=["call", "put"])
 @pytest.mark.parametrize("idx, m", list(enumerate(GRID)), ids=[case_id(m) for m in GRID])
 def test_within_z_standard_errors(name, otype, idx, m):
-    # A k-SE bound relies on the CLT. If almost no path finishes on one side of
-    # the strike (deep OTM: payoff ~always 0; deep ITM: payoff ~always linear,
-    # so the control variate absorbs it exactly), the sample SE is ~0 and the
-    # estimate is dominated by a handful of rare paths. We require at least 20
-    # expected paths on each side, using the risk-neutral P(S_T > K) = N(d2).
-    p_itm = itm_probability(m)
-    if N_PATHS * min(p_itm, 1 - p_itm) < 20:
-        pytest.skip(f"CLT not applicable: N*min(p,1-p) = {N_PATHS * min(p_itm, 1 - p_itm):.2g} < 20")
+    # A k-SE bound relies on the CLT and on the sample SE being representative;
+    # see cases.mc_clt_skip_reason for when that fails and why.
+    reason = mc_clt_skip_reason(otype, m, N_PATHS, control_variate=(name == "control_variate"))
+    if reason:
+        pytest.skip(reason)
     res = ESTIMATORS[name](otype, **m, n_paths=N_PATHS, seed=1000 + idx)
     want = reference.bs_price(is_call(otype), **m)
     assert res.n_paths == N_PATHS
