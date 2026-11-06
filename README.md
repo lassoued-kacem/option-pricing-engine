@@ -146,3 +146,27 @@ today. At each step it solves a tridiagonal linear system (Thomas algorithm,
 The tests check the error against Black-Scholes (≤ 1e-3 on the reference case
 at the default 400×400 grid), the factor-of-4 error reduction per grid
 doubling, and the boundary handling on a deliberately narrow grid.
+
+## Testing
+
+`./scripts/check.sh < /dev/null` builds everything and runs the C++ unit tests
+(CTest) and the pytest suite in `tests/`. Expected values are never taken from
+the library's own output. They come from published prices, put-call parity,
+analytic limits, and an independent pure-Python Black-Scholes in
+`tests/reference.py`, which is itself pinned to the published values. Every
+tolerance is stated and justified next to its test:
+
+| Check | Tolerance | Why |
+|-------|-----------|-----|
+| Closed form vs oracle (36 cases × call/put) | 1e-10 relative | Same formula in two implementations; only rounding differs |
+| Put-call parity, closed form | 1e-12 · S | Model-free identity, rounding only |
+| Monte Carlo vs closed form | 4.5 standard errors | Keeps the chance of any false alarm across 216 checks below 0.15% |
+| MC reported SE vs actual scatter over 300 seeds | ratio in [0.84, 1.16] | ~4σ band for a sample standard deviation |
+| PDE vs closed form, 1600×1600 | 1e-4 relative | Accuracy spec; the error shrinks like 1/N² |
+| PDE convergence slope | fitted slope in [−2.2, −1.8] | Crank-Nicolson is second order |
+| Greeks vs Richardson finite differences | 1e-6 relative | Truncation O(h⁴) plus rounding; worst observed 2.5e-9 |
+
+Monte Carlo cases where fewer than 20 simulated paths are expected to finish
+on one side of the strike are skipped, with that reason reported. There the
+standard error is essentially zero and the normal-approximation bound does
+not apply.
