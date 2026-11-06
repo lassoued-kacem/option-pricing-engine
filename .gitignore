@@ -1,0 +1,15 @@
+# Build output
+build/
+*.so
+*.o
+*.a
+
+# Python
+__pycache__/
+*.pyc
+.pytest_cache/
+.venv/
+
+# Scratch plot output (regenerable via scripts/convergence.py).
+# README figures live in docs/figures/ and ARE committed.
+plots/
