@@ -26,9 +26,10 @@ PYBIND11_MODULE(optlib, mod) {
     mod.doc() =
         "European option pricing: Black-Scholes closed form, Monte Carlo "
         "(antithetic / control variate) and Crank-Nicolson PDE.\n\n"
-        "All functions take (option_type, S, K, r, sigma, T, q=0.0) with q a "
-        "continuous dividend yield. Vega and rho are per 1.00 change; theta is "
-        "dV/dt per year.";
+        "All functions take (option_type, S, K, r, sigma, T) positionally or by "
+        "keyword; every further argument (q = continuous dividend yield, default "
+        "0, plus n_paths/seed or n_space/n_time/width_sd) is keyword-only. Vega "
+        "and rho are per 1.00 change; theta is dV/dt per year.";
 
     py::enum_<OptionType>(mod, "OptionType")
         .value("Call", OptionType::Call)
@@ -50,7 +51,7 @@ PYBIND11_MODULE(optlib, mod) {
             return bs_price(t, make_market(S, K, r, sigma, T, q));
         },
         py::arg("option_type"), py::arg("S"), py::arg("K"), py::arg("r"), py::arg("sigma"),
-        py::arg("T"), py::arg("q") = 0.0, "Black-Scholes-Merton closed-form price.");
+        py::arg("T"), py::kw_only(), py::arg("q") = 0.0, "Black-Scholes-Merton closed-form price.");
 
     mod.def(
         "bs_greeks",
@@ -65,7 +66,7 @@ PYBIND11_MODULE(optlib, mod) {
             return d;
         },
         py::arg("option_type"), py::arg("S"), py::arg("K"), py::arg("r"), py::arg("sigma"),
-        py::arg("T"), py::arg("q") = 0.0,
+        py::arg("T"), py::kw_only(), py::arg("q") = 0.0,
         "Analytic Greeks as a dict: delta, gamma, vega (per 1.00 vol), theta (dV/dt per year), "
         "rho (per 1.00 rate).");
 
@@ -80,7 +81,7 @@ PYBIND11_MODULE(optlib, mod) {
                 return fn(t, m, n_paths, seed);
             },
             py::arg("option_type"), py::arg("S"), py::arg("K"), py::arg("r"), py::arg("sigma"),
-            py::arg("T"), py::arg("n_paths"), py::arg("seed") = 42, py::arg("q") = 0.0, doc);
+            py::arg("T"), py::kw_only(), py::arg("n_paths"), py::arg("seed") = 42, py::arg("q") = 0.0, doc);
     };
     def_mc("mc_plain", &mc_plain, "Plain Monte Carlo price with standard error.");
     def_mc("mc_antithetic", &mc_antithetic,
@@ -97,6 +98,6 @@ PYBIND11_MODULE(optlib, mod) {
             return pde_price(t, m, n_space, n_time, width_sd);
         },
         py::arg("option_type"), py::arg("S"), py::arg("K"), py::arg("r"), py::arg("sigma"),
-        py::arg("T"), py::arg("n_space") = 400, py::arg("n_time") = 400, py::arg("q") = 0.0,
+        py::arg("T"), py::kw_only(), py::arg("n_space") = 400, py::arg("n_time") = 400, py::arg("q") = 0.0,
         py::arg("width_sd") = 6.0, "Crank-Nicolson finite-difference price.");
 }
