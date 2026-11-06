@@ -69,14 +69,23 @@ TEST(second_order_convergence) {
 }
 
 // Put-call parity holds for the PDE only up to discretisation error, so the
-// tolerance matches the fine-grid accuracy target above (two prices' worth).
+// tolerance is the sum of the two prices' fine-grid accuracy targets above.
 TEST(put_call_parity) {
     for (const auto& m : kCases) {
         const double c = optlib::pde_price(OptionType::Call, m, 800, 800);
         const double p = optlib::pde_price(OptionType::Put, m, 800, 800);
         const double rhs = m.S * std::exp(-m.q * m.T) - m.K * std::exp(-m.r * m.T);
-        CHECK_NEAR(c - p, rhs, 2e-4 * std::fmax(m.S, 1.0));
+        CHECK_NEAR(c - p, rhs, 1e-4 * (std::fmax(c, 1.0) + std::fmax(p, 1.0)));
     }
+}
+
+// Rannacher start. With dt >> dx^2 (1600 space intervals, 10 time steps) plain
+// CN leaves an undamped oscillation from the payoff kink (error ~0.17 on the
+// reference case), while the implicit start keeps the error at the O(dt^2)
+// level (~2e-3). Tolerance 1e-2 separates the two regimes.
+TEST(rannacher_start_damps_kink_oscillation) {
+    for (OptionType t : {OptionType::Call, OptionType::Put})
+        CHECK_NEAR(optlib::pde_price(t, kRef, 1600, 10), optlib::bs_price(t, kRef), 1e-2);
 }
 
 // Boundary conditions. At the default 6-sd domain the boundaries barely
