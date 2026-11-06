@@ -1,7 +1,9 @@
 // Black-Scholes unit tests. Every expected value is derived independently of
 // the implementation: published reference prices, put-call parity, or
 // analytic limits. Tolerances are stated next to each check.
+#include <algorithm>
 #include <cmath>
+#include <initializer_list>
 
 #include "optlib/black_scholes.hpp"
 #include "test_main.hpp"
@@ -97,6 +99,7 @@ TEST(no_arbitrage_bounds) {
     CHECK(call(m) >= lo);
     CHECK(call(m) <= m.S * std::exp(-m.q * m.T));
     CHECK(put(m) <= m.K * std::exp(-m.r * m.T));
+    CHECK(put(m) >= std::max(m.K * std::exp(-m.r * m.T) - m.S * std::exp(-m.q * m.T), 0.0));
 }
 
 // Greek identities implied by parity (independent of the Greek formulas):
@@ -115,11 +118,15 @@ TEST(greek_parity_identities) {
     CHECK_NEAR(c.theta - p.theta, m.q * m.S * dq - m.r * m.K * dr, 1e-10);
 }
 
+// Signs and bounds: call delta in (0, e^{-qT}), put delta in (-e^{-qT}, 0).
+// Uses q > 0 so the e^{-qT} bound is actually exercised.
 TEST(greek_signs) {
-    const auto c = optlib::bs_greeks(OptionType::Call, kRef);
-    const auto p = optlib::bs_greeks(OptionType::Put, kRef);
-    CHECK(c.delta > 0 && c.delta < 1);
-    CHECK(p.delta < 0 && p.delta > -1);
+    const Market m{100, 100, 0.05, 0.03, 0.2, 1.0};
+    const double dq = std::exp(-m.q * m.T);
+    const auto c = optlib::bs_greeks(OptionType::Call, m);
+    const auto p = optlib::bs_greeks(OptionType::Put, m);
+    CHECK(c.delta > 0 && c.delta < dq);
+    CHECK(p.delta < 0 && p.delta > -dq);
     CHECK(c.gamma > 0 && c.vega > 0);
     CHECK(c.theta < 0);
     CHECK(c.rho > 0 && p.rho < 0);
