@@ -43,7 +43,10 @@ double bs_price(OptionType type, const Market& m) {
 
     // Call: S e^{-qT} N(d1) - K e^{-rT} N(d2)
     // Put:  K e^{-rT} N(-d2) - S e^{-qT} N(-d1)
-    return sign * (m.S * df_q * norm_cdf(sign * d1) - m.K * df_r * norm_cdf(sign * d2));
+    // Clamp: far out of the money the difference can round to -0.0 or a
+    // negative subnormal; a European option value is never negative.
+    return std::max(
+        sign * (m.S * df_q * norm_cdf(sign * d1) - m.K * df_r * norm_cdf(sign * d2)), 0.0);
 }
 
 Greeks bs_greeks(OptionType type, const Market& m) {
