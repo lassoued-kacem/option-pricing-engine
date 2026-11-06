@@ -51,8 +51,9 @@ def test_greek_dict_fields_are_not_mixed_up():
     # Each field is the derivative it claims to be: central bump of the bound
     # price (h = 1e-4; O(h^2) error ~1e-7) -> tol 1e-5.
     # Delta and gamma from central first/second differences in S with
-    # h = 1e-2 * S: truncation O(h^2) ~1e-7, rounding eps*V/h^2 ~1e-11 -> tol 1e-5.
-    hS = 1e-2 * m["S"]
+    # h = 1e-3 * S ~ 0.1: truncation h^2/6 * V''' ~ 3e-7, rounding
+    # eps*V/h^2 ~ 2e-13 -> tol 1e-5.
+    hS = 1e-3 * m["S"]
     up, dn = dict(m, S=m["S"] + hS), dict(m, S=m["S"] - hS)
     v_up, v_mid, v_dn = (optlib.bs_price(OptionType.Call, **x) for x in (up, m, dn))
     assert c["delta"] == pytest.approx((v_up - v_dn) / (2 * hS), abs=1e-5)
