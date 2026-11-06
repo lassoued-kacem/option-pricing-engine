@@ -1,9 +1,9 @@
 """Independent Black-Scholes-Merton oracle used only to produce expected values.
 
 Written from the textbook formulas in pure Python (math.erf), sharing no code
-with the C++ library. It is itself pinned to quoted published values in
-test_black_scholes.py, so the C++ results are never compared against
-themselves.
+with the C++ library. It is itself pinned to quoted published values
+(test_bindings.py::test_oracle_matches_quoted_reference_values), so the C++
+results are never compared against themselves.
 """
 import math
 

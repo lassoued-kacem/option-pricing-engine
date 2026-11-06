@@ -18,6 +18,13 @@ def test_reference_case_through_bindings():
     assert optlib.bs_price(OptionType.Put, **REF) == pytest.approx(5.5735, abs=5e-5)
 
 
+def test_oracle_matches_quoted_reference_values():
+    # Pins the independent oracle itself to the quoted 4-dp values (tol 5e-5),
+    # so tests that use it as ground truth rest on published numbers.
+    assert reference.bs_price(True, **REF) == pytest.approx(10.4506, abs=5e-5)
+    assert reference.bs_price(False, **REF) == pytest.approx(5.5735, abs=5e-5)
+
+
 def test_greeks_returns_dict_of_floats():
     g = optlib.bs_greeks(OptionType.Call, **REF)
     assert set(g) == {"delta", "gamma", "vega", "theta", "rho"}
@@ -43,6 +50,13 @@ def test_greek_dict_fields_are_not_mixed_up():
     assert c["vega"] == pytest.approx(p["vega"], rel=1e-12)
     # Each field is the derivative it claims to be: central bump of the bound
     # price (h = 1e-4; O(h^2) error ~1e-7) -> tol 1e-5.
+    # Delta and gamma from central first/second differences in S with
+    # h = 1e-2 * S: truncation O(h^2) ~1e-7, rounding eps*V/h^2 ~1e-11 -> tol 1e-5.
+    hS = 1e-2 * m["S"]
+    up, dn = dict(m, S=m["S"] + hS), dict(m, S=m["S"] - hS)
+    v_up, v_mid, v_dn = (optlib.bs_price(OptionType.Call, **x) for x in (up, m, dn))
+    assert c["delta"] == pytest.approx((v_up - v_dn) / (2 * hS), abs=1e-5)
+    assert c["gamma"] == pytest.approx((v_up - 2 * v_mid + v_dn) / hS**2, abs=1e-5)
     h = 1e-4
     for key, greek in (("sigma", "vega"), ("r", "rho")):
         up, dn = dict(m), dict(m)
@@ -71,9 +85,18 @@ def test_dividend_yield_reaches_every_method():
     assert reference.bs_price(True, **swapped) != pytest.approx(reference.bs_price(True, **m), rel=1e-3)
 
 
-def test_optional_arguments_are_keyword_only():
+@pytest.mark.parametrize(
+    "call",
+    [
+        lambda: optlib.bs_price(OptionType.Call, 100, 100, 0.05, 0.2, 1.0, 0.03),
+        lambda: optlib.mc_antithetic(OptionType.Call, 100, 100, 0.05, 0.2, 1.0, 1000),
+        lambda: optlib.pde_price(OptionType.Call, 100, 100, 0.05, 0.2, 1.0, 200, 200),
+    ],
+    ids=["bs_q", "mc_n_paths", "pde_grid"],
+)
+def test_optional_arguments_are_keyword_only(call):
     with pytest.raises(TypeError):
-        optlib.bs_price(OptionType.Call, 100, 100, 0.05, 0.2, 1.0, 0.03)
+        call()
 
 
 @pytest.mark.parametrize("fn", [optlib.mc_plain, optlib.mc_antithetic, optlib.mc_control_variate])
