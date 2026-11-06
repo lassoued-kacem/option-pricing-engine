@@ -89,3 +89,34 @@ Three estimators are provided:
 The tests require every estimator to land within 4 standard errors of the
 Black-Scholes price. They also check that the reported SE matches the actual
 scatter of prices across 200 independent seeds.
+
+### 3. Crank-Nicolson finite differences (PDE)
+
+The option price `V(S, t)` satisfies the Black-Scholes partial differential
+equation. The solver works in log-price `x = ln S` and time-to-maturity
+`τ`, where the equation has constant coefficients:
+
+```
+∂V/∂τ = ½σ² ∂²V/∂x² + (r − q − ½σ²) ∂V/∂x − rV,    V(x, 0) = payoff(eˣ)
+```
+
+It lays a grid over `x` and steps backwards from the payoff at maturity to
+today. At each step it solves a tridiagonal linear system (Thomas algorithm,
+`O(N)`).
+
+- **Crank-Nicolson** averages the explicit and implicit schemes, which gives
+  second-order accuracy in both space and time. Doubling the grid cuts the
+  error by about 4×.
+- **Rannacher start**: the payoff has a kink at the strike, and plain CN
+  turns it into slowly-decaying wiggles. The first step is therefore taken as
+  two small fully-implicit steps, which smooth the kink. The strike sits
+  exactly on a grid node.
+- **Boundaries**: the grid spans `ln K ± (|ln(S/K)| + 6σ√T)`. At its far ends
+  the option behaves linearly: a deep in-the-money call is worth
+  `S e^{−qτ} − K e^{−rτ}` and a deep out-of-the-money one is worth 0. Those
+  values are imposed there.
+- The price at the actual spot is read off with cubic interpolation.
+
+The tests check the error against Black-Scholes (≤ 1e-3 on the reference case
+at the default 400×400 grid), the factor-of-4 error reduction per grid
+doubling, and the boundary handling on a deliberately narrow grid.
