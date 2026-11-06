@@ -97,13 +97,14 @@ TEST(se_scales_as_inverse_sqrt_n) {
 }
 
 // Degenerate inputs have exact answers even under simulation.
-// sigma = 0: every path ends at the forward, so price = BS limit and SE = 0.
+// sigma = 0: every path ends at the forward S e^{(r-q)T}, so the price is
+// exactly S e^{-qT} - K e^{-rT} and SE = 0. q > 0 makes this an exact check
+// of the drift and of the control mean S e^{-qT}. Tolerance 1e-10 (rounding).
 TEST(zero_volatility_is_exact) {
-    Market m = kCases[0];
-    m.sigma = 0.0;
+    Market m{100, 90, 0.05, 0.03, 0.0, 2.0};
     for (Estimator est : kEstimators) {
         const auto r = est(OptionType::Call, m, 1000, 1);
-        CHECK_NEAR(r.price, m.S - m.K * std::exp(-m.r * m.T), 1e-10);
+        CHECK_NEAR(r.price, m.S * std::exp(-m.q * m.T) - m.K * std::exp(-m.r * m.T), 1e-10);
         CHECK_NEAR(r.std_error, 0.0, 1e-12);
     }
 }
