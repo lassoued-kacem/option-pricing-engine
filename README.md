@@ -208,7 +208,8 @@ Rerun the script to get numbers for your machine.
 the Black-Scholes price on the reference call, and fits the rate as a slope
 on a log-log scale. The figures and numbers below come from one run of
 `.venv/bin/python scripts/convergence.py` with default settings. The script
-uses fixed seeds, so a rerun reproduces them.
+uses fixed seeds, so a rerun on the same toolchain reproduces them
+(`std::normal_distribution` output is specific to the standard library).
 
 ### Monte Carlo: error ∝ 1/√N
 
@@ -264,6 +265,7 @@ tolerance is stated and justified next to its test:
 | MC reported SE vs actual scatter over 300 seeds | ratio in [0.84, 1.16] | ~4σ band for a sample standard deviation |
 | PDE vs closed form, 1600×1600 | 1e-4 relative | Accuracy spec; the error shrinks like 1/N² |
 | PDE convergence slope | fitted slope in [−2.2, −1.8] | Crank-Nicolson is second order |
+| MC convergence slope (64 seeds, N = 2¹⁰…2¹⁶) | fitted slope in [−0.6, −0.4] | Central limit theorem gives −½; the band is about 4 standard errors of the fitted slope |
 | Greeks vs Richardson finite differences | 1e-6 relative | Truncation O(h⁴) plus rounding; worst observed 2.5e-9 |
 
 Some Monte Carlo cases are skipped, with the reason reported. Plain and
