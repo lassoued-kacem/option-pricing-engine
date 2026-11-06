@@ -56,3 +56,36 @@ discounted payoff on the forward.
 This formula is the ground truth that the other methods are tested against.
 For the reference case `S=K=100, r=5%, σ=20%, T=1` it gives
 call ≈ 10.4506 and put ≈ 5.5735.
+
+### 2. Monte Carlo simulation
+
+Monte Carlo prices the option the direct way. It simulates many possible stock
+prices at maturity, computes the payoff for each, averages them and discounts
+the average back to today. A European payoff depends only on the final price,
+and under geometric Brownian motion that price has an exact distribution, so
+no time stepping is needed:
+
+```
+S_T = S · exp((r − q − σ²/2)·T + σ·√T·Z),   Z ~ N(0, 1)
+```
+
+Because the answer is an average of random draws, it is uncertain. Every
+estimate therefore reports a **standard error** (SE), the typical size of its
+random error, which shrinks like `1/√N` in the number of paths `N`.
+
+Three estimators are provided:
+
+- **Plain**: independent draws. This is the baseline.
+- **Antithetic variates**: each draw `Z` is paired with its mirror `−Z`. When
+  one path ends high, its partner ends low, so the pair average is much less
+  noisy than two independent draws. The two halves of a pair are not
+  independent, so the SE is computed from the `N/2` pair averages.
+- **Control variate** (on top of antithetic): the discounted final stock price
+  has a known average, `S·e^{−qT}`. If the simulated stock prices came out a
+  bit high, the option payoffs probably did too. The estimator corrects the
+  option average by `β` times the observed error in the stock average, where
+  `β` is fitted from the same simulations.
+
+The tests require every estimator to land within 4 standard errors of the
+Black-Scholes price. They also check that the reported SE matches the actual
+scatter of prices across 200 independent seeds.
