@@ -118,9 +118,10 @@ nearly every path gives a payoff that is a straight line in `S_T`. The control
 variate absorbs that line exactly, so the SE can collapse towards zero even
 though the rarely-sampled region still carries real error.
 
-The tests require every estimator to land within 4 standard errors of the
-Black-Scholes price. They also check that the reported SE matches the actual
-scatter of prices across 200 independent seeds.
+Every estimator is tested against the Black-Scholes price within a stated
+number of standard errors: 4 in the C++ unit tests, 4.5 across the larger
+pytest grid. The tests also check that the reported SE matches the actual
+scatter of prices across many independent seeds. See [Testing](#testing).
 
 ### 3. Crank-Nicolson finite differences (PDE)
 
