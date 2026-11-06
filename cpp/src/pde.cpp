@@ -54,7 +54,9 @@ void theta_step(std::vector<double>& v, double theta, double dt, double l, doubl
 // Cubic Lagrange interpolation of grid values at x, using the 4 nodes around x.
 double interp_cubic(const std::vector<double>& v, double x0, double dx, double x) {
     const std::size_t n = v.size();
-    const double pos = (x - x0) / dx;
+    // Clamp as a double first: casting a (rounding-)negative value to size_t
+    // would be undefined behaviour.
+    const double pos = std::clamp((x - x0) / dx, 0.0, static_cast<double>(n - 1));
     std::size_t i = static_cast<std::size_t>(std::floor(pos));
     i = std::clamp<std::size_t>(i, 1, n - 3);  // stencil i-1 .. i+2
     double result = 0.0;
