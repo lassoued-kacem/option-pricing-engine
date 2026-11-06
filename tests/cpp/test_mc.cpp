@@ -118,6 +118,18 @@ TEST(invalid_path_counts_throw) {
     CHECK_THROWS(optlib::mc_antithetic(OptionType::Call, kCases[0], 1001, 1));
     CHECK_THROWS(optlib::mc_control_variate(OptionType::Call, kCases[0], 2, 1));
     CHECK_THROWS(optlib::mc_plain(OptionType::Call, kCases[0], 0, 1));
+    // Control variate needs 3 pairs: 4 paths would leave 0 residual dof.
+    CHECK_THROWS(optlib::mc_control_variate(OptionType::Call, kCases[0], 4, 1));
+}
+
+// At the smallest accepted path count every estimator returns a finite SE.
+TEST(minimum_path_counts_give_finite_se) {
+    for (std::uint64_t seed = 1; seed <= 20; ++seed) {
+        CHECK(std::isfinite(optlib::mc_plain(OptionType::Call, kCases[0], 4, seed).std_error));
+        CHECK(std::isfinite(optlib::mc_antithetic(OptionType::Call, kCases[0], 4, seed).std_error));
+        CHECK(std::isfinite(
+            optlib::mc_control_variate(OptionType::Call, kCases[0], 6, seed).std_error));
+    }
 }
 
 TEST_MAIN()

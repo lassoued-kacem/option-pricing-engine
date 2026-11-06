@@ -4,6 +4,7 @@
 #include <cmath>
 #include <random>
 #include <stdexcept>
+#include <string>
 
 namespace optlib {
 
@@ -56,8 +57,9 @@ inline double payoff(OptionType type, double ST, double K) {
     return type == OptionType::Call ? std::max(ST - K, 0.0) : std::max(K - ST, 0.0);
 }
 
-void check_paths(std::size_t n_paths, bool paired) {
-    if (n_paths < 4) throw std::invalid_argument("n_paths must be >= 4");
+void check_paths(std::size_t n_paths, bool paired, std::size_t min_paths = 4) {
+    if (n_paths < min_paths)
+        throw std::invalid_argument("n_paths must be >= " + std::to_string(min_paths));
     if (paired && n_paths % 2 != 0)
         throw std::invalid_argument("n_paths must be even for antithetic sampling");
 }
@@ -99,7 +101,9 @@ McResult mc_antithetic(OptionType type, const Market& m, std::size_t n_paths,
 McResult mc_control_variate(OptionType type, const Market& m, std::size_t n_paths,
                             std::uint64_t seed) {
     validate(m);
-    check_paths(n_paths, true);
+    // The residual variance uses n_pairs - 2 degrees of freedom (mean and
+    // beta are estimated), so at least 3 pairs are needed.
+    check_paths(n_paths, true, 6);
     std::mt19937_64 rng(seed);
     std::normal_distribution<double> normal(0.0, 1.0);
     const auto gbm = make_gbm(m);

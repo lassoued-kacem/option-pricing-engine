@@ -34,7 +34,8 @@ McResult mc_antithetic(OptionType type, const Market& m, std::size_t n_paths,
 //   price = mean(Y) - beta (mean(X) - S e^{-qT}),  beta = Cov(Y,X) / Var(X)
 // beta is estimated from the same samples, which adds an O(1/n) bias that is
 // negligible next to the O(1/sqrt(n)) standard error. The reported standard
-// error is std(Y - beta X) / sqrt(n_pairs). n_paths must be even and >= 4.
+// error is std(Y - beta X) / sqrt(n_pairs), with n_pairs - 2 degrees of
+// freedom. n_paths must be even and >= 6 (at least 3 pairs).
 McResult mc_control_variate(OptionType type, const Market& m, std::size_t n_paths,
                             std::uint64_t seed);
 
