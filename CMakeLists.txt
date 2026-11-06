@@ -13,6 +13,7 @@ endif()
 add_library(optlib_core STATIC
   cpp/src/black_scholes.cpp
   cpp/src/monte_carlo.cpp
+  cpp/src/pde.cpp
 )
 target_include_directories(optlib_core PUBLIC cpp/include)
 target_compile_options(optlib_core PRIVATE -Wall -Wextra -Wpedantic)
