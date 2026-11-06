@@ -95,7 +95,7 @@ def plot_mc(rmse, slopes, out, n_seeds):
     # point so it does not overlap the data.
     anchor = 1.5 * rmse[ESTIMATORS[0][0]][0]
     ax.plot(x, anchor * (x / x[0]) ** -0.5, color=REF_LINE, linewidth=1.5, linestyle="--",
-            label="Reference slope −1/2")
+            label="Reference slope −1/2 (shifted up for visibility)")
     style_axes(ax, "Number of paths N", f"RMSE vs Black-Scholes ({n_seeds} seeds)",
                "Monte Carlo error falls like 1/√N")
     leg = ax.legend(frameon=False, fontsize=9, loc="lower left")
