@@ -36,6 +36,11 @@ McResult mc_antithetic(OptionType type, const Market& m, std::size_t n_paths,
 // negligible next to the O(1/sqrt(n)) standard error. The reported standard
 // error is std(Y - beta X) / sqrt(n_pairs), with n_pairs - 2 degrees of
 // freedom. n_paths must be even and >= 6 (at least 3 pairs).
+// Limitation: if almost no simulated path lands on one side of the strike
+// (very deep in/out of the money relative to sigma sqrt(T) and n_paths), the
+// payoff is linear in S_T on every sampled path, the control absorbs it
+// completely and the reported SE collapses towards 0 although the true error
+// (from the unsampled region) does not. Treat a near-zero SE with suspicion.
 McResult mc_control_variate(OptionType type, const Market& m, std::size_t n_paths,
                             std::uint64_t seed);
 

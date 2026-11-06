@@ -112,9 +112,16 @@ Three estimators are provided:
   option average by `β` times the observed error in the stock average, where
   `β` is fitted from the same simulations.
 
-The tests require every estimator to land within 4 standard errors of the
-Black-Scholes price. They also check that the reported SE matches the actual
-scatter of prices across 200 independent seeds.
+**Limitation:** the reported SE is only trustworthy when enough paths land on
+both sides of the strike. For a very deep in- or out-of-the-money option,
+nearly every path gives a payoff that is a straight line in `S_T`. The control
+variate absorbs that line exactly, so the SE can collapse towards zero even
+though the rarely-sampled region still carries real error.
+
+Every estimator is tested against the Black-Scholes price within a stated
+number of standard errors: 4 in the C++ unit tests, 4.5 across the larger
+pytest grid. The tests also check that the reported SE matches the actual
+scatter of prices across many independent seeds. See [Testing](#testing).
 
 ### 3. Crank-Nicolson finite differences (PDE)
 
@@ -146,3 +153,29 @@ today. At each step it solves a tridiagonal linear system (Thomas algorithm,
 The tests check the error against Black-Scholes (≤ 1e-3 on the reference case
 at the default 400×400 grid), the factor-of-4 error reduction per grid
 doubling, and the boundary handling on a deliberately narrow grid.
+
+## Testing
+
+`./scripts/check.sh < /dev/null` builds everything and runs the C++ unit tests
+(CTest) and the pytest suite in `tests/`. Expected values are never taken from
+the library's own output. They come from published prices, put-call parity,
+analytic limits, and an independent pure-Python Black-Scholes in
+`tests/reference.py`, which is itself pinned to the published values. Every
+tolerance is stated and justified next to its test:
+
+| Check | Tolerance | Why |
+|-------|-----------|-----|
+| Closed form vs oracle (36 cases × call/put) | 1e-10 relative | Same formula in two implementations; only rounding differs |
+| Put-call parity, closed form | 1e-12 · S | Model-free identity, rounding only |
+| Monte Carlo vs closed form | 4.5 standard errors | Keeps the chance of any false alarm across 216 checks below 0.15% |
+| MC reported SE vs actual scatter over 300 seeds | ratio in [0.84, 1.16] | ~4σ band for a sample standard deviation |
+| PDE vs closed form, 1600×1600 | 1e-4 relative | Accuracy spec; the error shrinks like 1/N² |
+| PDE convergence slope | fitted slope in [−2.2, −1.8] | Crank-Nicolson is second order |
+| Greeks vs Richardson finite differences | 1e-6 relative | Truncation O(h⁴) plus rounding; worst observed 2.5e-9 |
+
+Some Monte Carlo cases are skipped, with the reason reported. Plain and
+antithetic cases are skipped when fewer than 20 simulated paths are expected
+to end with a non-zero payoff. Control-variate cases are skipped when fewer
+than 20 are expected on either side of the strike. In those cases the barely
+sampled region makes the reported standard error unreliable (see the
+limitation above), so an "within k standard errors" check means nothing.
